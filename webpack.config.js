@@ -2,7 +2,9 @@ const path = require('path')
 const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const HtmlWebpackInlineSourcePlugin = require('html-webpack-inline-source-plugin')
-const ExtractTextPlugin = require('extract-text-webpack-plugin')
+const MiniCssExtractPlugin = require("mini-css-extract-plugin")
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
 
 const isProduction = process.env.npm_lifecycle_event === 'build'
 
@@ -16,6 +18,7 @@ if(isProduction) {
 }
 
 let config = {
+  mode: isProduction ? 'production' : 'development',
   entry: './src/index.js',
   output: {
     path: path.join(__dirname, 'dist'),
@@ -29,27 +32,47 @@ let config = {
         loader: 'babel-loader',
         options: {
           presets: [
-            ['env', { "modules": false }]
+            ['env', {
+              "modules": false,
+              "targets": {
+                "browsers": [
+                  "last 2 Chrome versions",
+                  "last 2 Firefox versions"
+                ]
+              }
+            }]
           ]
         }
       }
     }, {
       test: /\.css$/,
-      use: ExtractTextPlugin.extract({
-        fallback: 'style-loader',
-        use: 'css-loader'
-      })
+      use: [
+        MiniCssExtractPlugin.loader,
+        'css-loader'
+      ]
     }]
   },
   plugins: [
-    new ExtractTextPlugin('style.css'),
+    new MiniCssExtractPlugin({
+      filename: 'style.css'
+    }),
     new HtmlWebpackPlugin(htmlConfig),
     new HtmlWebpackInlineSourcePlugin()
   ],
   stats: 'minimal',
   devServer: {
     stats: 'minimal'
-  }
+  },
+  optimization: {
+    minimizer: [
+      new UglifyJsPlugin({
+        cache: true,
+        parallel: true,
+        sourceMap: false
+      }),
+      new OptimizeCSSAssetsPlugin({})
+    ]
+  },
 }
 
 if(!isProduction) {
